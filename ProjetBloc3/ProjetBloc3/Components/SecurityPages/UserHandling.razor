@@ -1,0 +1,145 @@
+﻿@page "/admin/users"
+@using ProjetBloc3.Business.Applicatif.Security
+@using ProjetBloc3.Business.Commands
+@using ProjetBloc3.Business.Metier
+@using ProjetBloc3.Security.Configuration
+@using ProjetBloc3.Repository.BlocCube3.Models
+@using Microsoft.AspNetCore.Authorization
+@inject NavigationManager NavigationManager
+@inject IUserServiceApp UserServiceApp
+@inject IRoleServiceApp RoleServiceApp
+
+
+@attribute [Authorize(Roles = Roles.Admin + "," + Roles.Impersonate)]
+
+<MudItem>
+    <MudGrid Spacing="8">
+        <MudItem xs="12">
+            <MudText Typo="Typo.h3">Gestion des utilisateurs :</MudText>
+        </MudItem>
+        <MudItem xs="12" sm="4" md="2">
+            <MudDataGrid Style="min-height:50vh;" T="UserAccount" RowClick="(row) => SelectUser(row.Item)" Items="@listAllUser" Dense Hover>
+                <Columns>
+                    <PropertyColumn Property="x => x.UserName" Title="Tous les utilisateurs" />
+                </Columns>
+            </MudDataGrid>
+            <MudButton OnClick="Open" Class="mt-5" Variant="Variant.Filled" Color="MudBlazor.Color.Info">Ajouter</MudButton>
+        </MudItem>
+        <MudItem xs="12" sm="8" md="10">
+            <MudItem>@currentUser?.UserName</MudItem>
+            <MudGrid>
+                <MudItem xs="12" sm="4" md="4">
+                    <MudDataGrid Style="min-height:50vh;" T="UserRole" @bind-SelectedItems="selectedRole" Items="@listRoles" Dense Hover>
+                        <Columns>
+                            <SelectColumn ShowInFooter="false" T="UserRole" />
+                            <PropertyColumn Property="x => x.Code" Title="Code Role" />
+                        </Columns>
+                    </MudDataGrid>
+                    <MudButton Class="mt-5" Variant="Variant.Filled" OnClick="SaveUserAccountChanges" Color="MudBlazor.Color.Info">Enregistrer</MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudItem>
+    </MudGrid>
+</MudItem>
+
+<MudDialog Visible="visible" Style="min-width:80%">
+    <DialogContent>
+        <MudForm>
+            <MudTextField Label="Login" @bind-Value="userAccountLogin"></MudTextField>
+            <MudSelect @bind-Value="createUserRole" ToStringFunc="@converter" Label="Role" T="UserRole">
+                @foreach (var role in listRoles)
+                {
+                    <MudSelectItem Value="role" />
+                }
+            </MudSelect>
+            <MudText Color="MudBlazor.Color.Error">@addUserErrorMessage</MudText>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="ValidateAddUserAccount">Valider</MudButton>
+        <MudSpacer />
+        <MudButton Color="MudBlazor.Color.Info" OnClick="Close">Fermer</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    List<UserAccount> listAllUser = new();
+    List<UserRole> listRoles = new();
+    UserAccount? currentUser;
+    HashSet<UserRole>? selectedRole = new();
+
+    bool visible;
+    void Open() => visible = true;
+    void Close() => visible = false;
+
+    string userAccountLogin = "";
+    UserRole? createUserRole;
+    string addUserErrorMessage = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        listAllUser = await UserServiceApp.GetAllUserAccount();
+
+        //Récupération des roles
+        listRoles = await RoleServiceApp.GetAllRolesAsync();
+        listRoles = listRoles.Where(x => x.Code != Roles.Admin).ToList();
+
+        //Select default user
+        if (listAllUser!.Any())
+        {
+            this.SelectUser(listAllUser!.First());
+        }
+    }
+
+    Func<UserRole, string> converter = p => p?.Name;
+
+    private void SelectUser(UserAccount user)
+    {
+        selectedRole!.Clear();
+
+        currentUser = user;
+        selectedRole.Add(listRoles.FirstOrDefault(x => x.Id == user.UserRoleId)!);
+    }
+
+    private async Task SaveUserAccountChanges()
+    {
+        var userAccountCommand = new UpdateUserAccountCommand
+            {
+                UserAccountId = currentUser!.Id,
+                UserRole = selectedRole!.ToList()
+            };
+
+        await UserServiceApp.UpdateUsersAsync(userAccountCommand);
+
+        UserAccount userAccountToRefresh = (await UserServiceApp.GetAllUserAccount()).Single(x => x.Id == currentUser.Id)!;
+        this.SelectUser(userAccountToRefresh);
+    }
+
+    async Task ValidateAddUserAccount()
+    {
+        if (string.IsNullOrWhiteSpace(userAccountLogin))
+        {
+            this.addUserErrorMessage = "Ajouter un nom d'utilisateur";
+            return;
+        }
+
+        if (createUserRole == null)
+        {
+            this.addUserErrorMessage = "Veuillez selectionner un role pour l'utilisateur";
+            return;
+        }
+
+        // SAUVEGARDER
+        var createUserAccountCommand = new CreateUserAccountCommand()
+            {
+                UserName = userAccountLogin,
+                Role = createUserRole
+            };
+
+        var userRoleCreated = await this.UserServiceApp.CreateNewUserAccount(createUserAccountCommand);
+
+        this.listAllUser.Add(userRoleCreated);
+
+        Close();
+    }
+}

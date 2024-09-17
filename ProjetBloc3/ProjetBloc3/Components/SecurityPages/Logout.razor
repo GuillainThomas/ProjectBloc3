@@ -1,0 +1,28 @@
+﻿@page "/logout"
+@using Microsoft.AspNetCore.Authentication
+@inject NavigationManager navigationMananger
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="text-center mt-2">
+                <span class="text-danger fw-bolder">Deconnexion réussie.</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter]
+    public HttpContext? HttpContext { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        if (HttpContext!.User.Identity!.IsAuthenticated)
+        {
+            await HttpContext.SignOutAsync();
+            navigationMananger.NavigateTo("/logout", true);
+        }
+    }
+}

@@ -1,0 +1,14 @@
+﻿@inject NavigationManager Navigator
+
+@code {
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            if (!Navigator.Uri.EndsWith("/login"))
+            {
+                Navigator.NavigateTo("/login", true);
+            }
+        }
+    }
+}

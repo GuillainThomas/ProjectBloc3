@@ -1,0 +1,16 @@
+﻿@using ProjetBloc3.Security.Configuration
+<MudNavMenu Bordered Color="Color.Info" Margin="Margin.Dense" Rounded>
+    <MudText Typo="Typo.h6" Class="px-4">ProjetBloc3</MudText>
+    <MudDivider Class="my-2" />
+    <MudNavLink Href="/" Icon="@Icons.Material.Filled.Dashboard" Match="NavLinkMatch.All">Dashboard</MudNavLink>
+    <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Impersonate}")">
+        <Authorized>
+            <MudDivider />
+            <MudNavGroup Icon="@Icons.Material.Filled.AdminPanelSettings" Title="Administration" Expanded>
+                <MudNavLink Href="admin/impersonate" Match="NavLinkMatch.All">Connecter en tant que</MudNavLink>
+                <MudNavLink Href="admin/roles" Match="NavLinkMatch.All">Roles</MudNavLink>
+                <MudNavLink Href="admin/users" Match="NavLinkMatch.All">Utilisateurs</MudNavLink>
+            </MudNavGroup>
+        </Authorized>
+    </AuthorizeView>
+</MudNavMenu>

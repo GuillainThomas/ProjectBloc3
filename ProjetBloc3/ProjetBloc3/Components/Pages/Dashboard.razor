@@ -1,0 +1,173 @@
+﻿@page "/"
+@using ProjetBloc3.Business.Applicatif
+@using ProjetBloc3.Repository.BlocCube3.Models
+
+@inject IArticleAppService articleAppService
+
+<MudGrid>
+    <MudItem xs="2" Class="mt-5 mb-3"> </MudItem>
+    <MudItem xs="8" Class="mt-5 mb-3">
+        <MudPaper Elevation="4" Class="rounded-lg">
+            <MudDataGrid @ref="articleTable" T="Article" Items="listArticle" Hideable="false" Groupable="false" Dense SortMode="SortMode.None">
+                <ToolBarContent>
+                    <MudSpacer />
+                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Info" StartIcon="@Icons.Material.Filled.Add" OnClick="CreationFormOpen">Create an Article</MudButton>
+                    <MudSpacer />
+                </ToolBarContent>
+                <Columns>
+                    <PropertyColumn Property="x => x.Id" Title="Id" />
+                    <PropertyColumn Property="x => x.Title" Title="Title" />
+                    <TemplateColumn Filterable="false">
+                        <CellTemplate>
+                            <MudStack Row>
+                                <MudPaper Elevation="3" Class="d-inline-flex">
+                                    <MudIconButton Class="pa-1" Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Filled.Edit" OnClick="() => DetailFormOpen(context.Item)" />
+                                    <MudIconButton Class="pa-1 ml-2" Size="Size.Small" Color="Color.Error" Icon="@Icons.Material.Filled.Delete" OnClick="() => DeleteFormOpen(context.Item)" />
+                                </MudPaper>
+                            </MudStack>
+                        </CellTemplate>
+                    </TemplateColumn>
+                </Columns>
+                <PagerContent>
+                    <MudDataGridPager T="Article" />
+                </PagerContent>
+            </MudDataGrid>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="2" Class="mt-5 mb-3"> </MudItem>
+</MudGrid>
+
+<MudDialog Visible="visibleCreationForm" Options="dialogOptions" OnBackdropClick="CreationFormClose" Class="rounded-lg">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Create an Article</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="creationForm">
+            <MudTextField T="string" Class="rounded-lg" Label="Title" @bind-Value="article.Title" Required RequiredError="Please insert a Title" Variant="Variant.Outlined" />
+            <MudTextField T="string" Class="rounded-lg" Label="Content" @bind-Value="article.Content" Required RequiredError="Please insert a Content" Variant="Variant.Outlined" Lines="3" AutoGrow Validation="@(new Func<string, IEnumerable<string>>(ContentLength))" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CreationFormClose">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Info" StartIcon="@Icons.Material.Filled.Save" OnClick="CreationFormSubmit">Create</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<MudDialog Visible="visibleDetailForm" Options="dialogOptions" OnBackdropClick="CreationFormClose" Class="rounded-lg">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Edit Article : @article.Title</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="detailForm">
+            <MudTextField T="string" Class="rounded-lg" Label="Title" @bind-Value="article.Title" Required RequiredError="Please insert a Title"  Variant="Variant.Outlined" />
+            <MudTextField T="string" Class="rounded-lg" Label="Content" @bind-Value="article.Content" Required RequiredError="Please insert a Content" Variant="Variant.Outlined" Lines="3" AutoGrow Validation="@(new Func<string, IEnumerable<string>>(ContentLength))" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="DetailFormClose">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Info" StartIcon="@Icons.Material.Filled.Save" OnClick="DetailFormSubmit">Save changes</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<MudMessageBox @ref="mbox" Title="Warning !" CancelText="Cancel" Class="rounded-lg">
+    <MessageContent>
+        <MudText>You are going to <b>DELETE</b> a Article</MudText>
+    </MessageContent>
+    <YesButton>
+        <MudButton Class="ml-3" Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete" OnClick="DeleteFormSubmit">Delete</MudButton>
+    </YesButton>
+</MudMessageBox>
+
+@code{
+    // Variable for DataGrid
+    private MudDataGrid<Article> articleTable = new();
+    private IEnumerable<Article> listArticle = new List<Article>();
+
+    // Variable for Form
+    private DialogOptions dialogOptions = new DialogOptions() { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true };
+    private Article article = new();
+    private MudForm? creationForm;
+    private bool visibleCreationForm;
+    private MudForm? detailForm;
+    private bool visibleDetailForm;
+    private bool readonlyDetailForm = true;
+    private MudMessageBox? mbox { get; set; }
+
+    // Initialisation
+    protected override async Task OnInitializedAsync()
+    {
+        listArticle = await articleAppService.GetAllAsync();
+    }
+
+    // Creation Form
+    private void CreationFormOpen()
+    {
+        article = new();
+        visibleCreationForm = true;
+    }
+    private void CreationFormClose() => visibleCreationForm = false;
+    private async Task CreationFormSubmit()
+    {
+        await creationForm!.Validate();
+        if (creationForm.IsValid)
+        {
+            try
+            {
+                await articleAppService.CreateAsync(article);
+                listArticle = listArticle.Append(article);
+            }
+            catch (Exception e) { throw new("Error in Article creation : ", e); }
+            visibleCreationForm = false;
+        }
+    }
+
+    // Detail Form
+    private void DetailFormOpen(Article articleDb)
+    {
+        article = articleDb;
+        visibleDetailForm = true;
+        readonlyDetailForm = true;
+    }
+    private void DetailFormClose() => visibleDetailForm = false;
+    private async Task DetailFormSubmit()
+    {
+        await detailForm!.Validate();
+        if (detailForm.IsValid)
+        {
+            try
+            {
+                await articleAppService.UpdateAsync(article);
+                listArticle = listArticle.Where(x => x.Id != article.Id);
+                listArticle = listArticle.Append(article);
+            }
+            catch (Exception e) { throw new("Error in Article update : ", e); }
+            visibleDetailForm = false;
+        }
+    }
+
+    // Delete Form
+    private async Task DeleteFormOpen(Article articleDb)
+    {
+        article = articleDb;
+        bool? result = await mbox!.ShowAsync();
+    }
+    private async Task DeleteFormSubmit()
+    {
+        try
+        {
+            await articleAppService.DeleteAsync(article);
+            listArticle = listArticle.Where(x => x.Id != article.Id);
+        }
+        catch (Exception e) { throw new("Error in Article delete : ", e); }
+        visibleDetailForm = false;
+    }
+
+    private IEnumerable<string> ContentLength(string content)
+    {
+        if(content.Length > 250)
+        {
+            yield return $"Content can't be loger than 250 characters, current length : {content.Length}";
+            yield break;
+        }
+    }
+}

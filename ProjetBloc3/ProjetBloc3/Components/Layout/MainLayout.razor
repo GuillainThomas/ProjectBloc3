@@ -1,0 +1,61 @@
+﻿@using System.Security.Claims
+@using ProjetBloc3.Security.Configuration
+@inherits LayoutComponentBase
+@inject NavigationManager NavigationManager
+
+<AuthorizeView>
+    <Authorized>
+        <MudThemeProvider @bind-IsDarkMode="@_isDarkMode" Theme="_theme" />
+        <MudPopoverProvider />
+        <MudDialogProvider />
+        <MudSnackbarProvider />
+
+        <MudLayout Style="@_bgcolor">
+            <MudAppBar Color="Color.Info">
+                <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="DrawerToggle" />
+                <MudSpacer />
+                <MudText><b>@(context.User.HasClaim(x => x.Type == ClaimTypes.Role && x.Value == Roles.Impersonate) ? "En tant que " : "") @context.User.Identity!.Name</b></MudText>
+                <MudSpacer />
+                <MudSwitch @bind-Value="@_isDarkMode" ThumbIcon="@(_isDarkMode==true ? Icons.Material.Filled.DarkMode : Icons.Material.Filled.LightMode)" Color="Color.Primary" UncheckedColor="Color.Warning" Class="ma-4" T="bool" Label="Mode Clair/Sombre" />
+                <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit" Edge="Edge.End" OnClick="SignOut" />
+            </MudAppBar>
+            <MudDrawer @bind-Open="@_drawerOpen">
+                <NavMenu />
+            </MudDrawer>
+            <MudMainContent Style="@_bgcolor">
+                <MudContainer MaxWidth="MaxWidth.False">
+                    @Body
+                </MudContainer>
+            </MudMainContent>
+        </MudLayout>
+    </Authorized>
+    <NotAuthorized>
+        @Body
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    bool _drawerOpen = true;
+    void DrawerToggle() => _drawerOpen = !_drawerOpen;
+
+    private bool _isDarkMode;
+    private MudTheme _theme = new();
+    private string _bgcolor => _isDarkMode == true ? "background-color:#32333d;min-height:100vh;" : "background-color:#f4f5f8;min-height:100vh;";
+
+    private void SignOut() => NavigationManager.NavigateTo("/logout", true);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authenticationState = await authenticationStateTask!;
+        if (!NavigationManager.Uri.EndsWith("/login"))
+        {
+            if (!authenticationState.User.Identity!.IsAuthenticated)
+            {
+                NavigationManager.NavigateTo("/login", true);
+            }
+        }
+    }
+}
