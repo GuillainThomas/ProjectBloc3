@@ -1,25 +1,20 @@
 ﻿@page "/login/{ConnectAs?}"
 @using ProjetBloc3.Business.Applicatif
-@using ProjetBloc3.Business.Commands
+@using ProjetBloc3.Business.Applicatif.Security
 @using ProjetBloc3.Data.ViewModels
-@* @using ProjetBloc3.Repository.Fournitures.Service *@
 @using ProjetBloc3.Core
 @using ProjetBloc3.Security
 @using ProjetBloc3.Security.Configuration
-@using ProjetBloc3.Security.Services
-@using ProjetBloc3.Repository.BlocCube3.Models
+@using ProjetBloc3.Repository.BlocCube.Models
 @using Microsoft.AspNetCore.Authentication.Cookies
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
 @using Microsoft.AspNetCore.Components.Server
 @using Microsoft.AspNetCore.Authentication;
-@using ProjetBloc3.Business.Applicatif.Security;
+@inject IUserAccountAppService UserAccountService
 @inject AuthenticationStateProvider AuthenticationStateProvider
-@inject NavigationManager NavigationManager
-@inject IAuthenticationServiceApp AuthenticationService
+@inject NavigationManager Navigator
 @inject ILogger<Login> Logger
-@inject IUserServiceApp UserServiceApp
-@inject IRoleServiceApp RoleServiceApp
 
 <style>
     body {
@@ -37,7 +32,7 @@
         padding: 20px;
         border-radius: 8px;
         box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        height: 350px;
+        height: 400px;
         width: 500px;
     }
 
@@ -95,9 +90,9 @@
     <div class="form-container">
         <EditForm Model="@Model" OnValidSubmit="Authenticate" FormName="LoginForm">
             <DataAnnotationsValidator />
-            <h3 style="margin-bottom:10%;">Fournitures</h3>
+            <h3 style="margin-bottom:10%;">Dashboard</h3>
             <div class="form-group">
-                <label>Login</label>
+                <label>Username</label>
                 <InputText @bind-Value="Model.UserName" placeholder="Login" />
                 <ValidationMessage For="() => Model.UserName" />
             </div>
@@ -127,55 +122,26 @@
 
     private string? errorMessage;
 
-    protected override async Task OnInitializedAsync()
-    {
-        if (ConnectAs != null)
-        {
-            if (HttpContext!.User.Identity!.IsAuthenticated && (HttpContext.User.HasClaim(ClaimTypes.Role, Roles.Admin) || HttpContext.User.HasClaim(ClaimTypes.Role, Roles.Impersonate)))
-            {
-                await Impersonate();
-            }
-            else errorMessage = "Vous ne pouvez pas vous connecter en tant que quelqu'un d'autre car vous n'êtes pas administrateur";
-        }
-    }
-
     private async Task Authenticate()
     {
         try
         {
-            // Response<UserAccount> response = await AuthenticationService.Authenticate(Model.UserName!, Model!.Password!);
-            Response<UserAccount> response = await AuthenticationService.AuthenticateWithoutAD(Model.UserName!);
-            if (!response.IsSuccesful && response.Message == "Utilisateur inconnu dans l'application")
+            // Check the user logins
+            UserAccount? response = await UserAccountService.VerifyPasswordAsync(Model.UserName!, Model.Password!);
+            if (response == null)
             {
-                var createUserAccountCommand = new CreateUserAccountCommand()
-                {
-                    UserName = Model.UserName!.ToUpper(),
-                    Role = await RoleServiceApp.GetUserRoleAsync()
-                };
-
-                var userRoleCreated = await this.UserServiceApp.CreateNewUserAccount(createUserAccountCommand);
-
-                await Authenticate();
-            }
-            else if (!response.IsSuccesful)
-            {
-                errorMessage = response.Message;
+                errorMessage = "Utilisateur inconnu ou Mot de passe incorect";
                 return;
             }
 
-            var userAccount = response.Data;
-            if (userAccount is null)
-            {
-                return;
-            }
-
-            var claims = SetUpClaims(userAccount);
+            // Createthe claims
+            var claims = SetUpClaims(response);
 
             var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
             ClaimsPrincipal principal = new ClaimsPrincipal(identity);
 
             await HttpContext!.SignInAsync(principal);
-            NavigationManager.NavigateTo("/");
+            Navigator.NavigateTo("/");
         }
         catch (Exception e)
         {
@@ -184,36 +150,33 @@
         }
     }
 
-    //Méthode pour usurper l'identé d'une personne lorsque l'on est admin
-    private async Task Impersonate()
+    private async Task RegisterUser()
     {
-        if (HttpContext!.User.Identity!.IsAuthenticated)
+        try
         {
-            await HttpContext.SignOutAsync();
-        }
+            UserAccount user = new()
+                {
+                    UserName = Model.UserName,
+                    Password = Model.Password
+                };
 
-        Response<UserAccount> response = await AuthenticationService.AuthenticateWithoutAD(ConnectAs!);
-        if (!response.IsSuccesful)
+            // Register the user and save his password
+            user = await UserAccountService.RegisterUserAsync(user);
+
+            // Create the claims
+            var claims = SetUpClaims(user);
+
+            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            ClaimsPrincipal principal = new ClaimsPrincipal(identity);
+
+            await HttpContext!.SignInAsync(principal);
+            Navigator.NavigateTo("/");
+        }
+        catch (Exception e)
         {
-            errorMessage = response.Message;
-            return;
+            Logger.LogInformation(e.Message);
+            throw;
         }
-
-        var userAccount = response.Data;
-        if (userAccount is null)
-        {
-            return;
-        }
-
-        var claims = SetUpClaims(userAccount);
-
-        claims.Add(new Claim(ClaimTypes.Role, Roles.Impersonate));
-
-        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-        var principal = new ClaimsPrincipal(identity);
-
-        await HttpContext!.SignInAsync(principal);
-        NavigationManager.NavigateTo("/");
     }
 
     //Methode pour remplir les claims génériques
@@ -222,14 +185,7 @@
         var claims = new List<Claim>()
         {
             new Claim(ClaimTypes.Name, userAccount.UserName),
-            new Claim(ClaimTypes.Role, userAccount.UserRole.Code),
         };
-
-        // Ajout des accès aux modules attribués au rôle de l'utilisateur
-        foreach (UserRoleModuleAccess userRoleModuleAccess in userAccount.UserRole.UserRoleModuleAccesses)
-        {
-            claims.Add(new Claim("HasModuleAccess", userRoleModuleAccess.Module.Name));
-        }
 
         return claims;
     }

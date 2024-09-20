@@ -1,35 +1,35 @@
 ﻿@page "/"
 @using ProjetBloc3.Business.Applicatif
-@using ProjetBloc3.Repository.BlocCube3.Models
+@using ProjetBloc3.Repository.BlocCube.Models
 
-@inject IArticleAppService articleAppService
+@inject IUserInfoAppService userInfoAppService
 
 <MudGrid>
     <MudItem xs="2" Class="mt-5 mb-3"> </MudItem>
     <MudItem xs="8" Class="mt-5 mb-3">
         <MudPaper Elevation="4" Class="rounded-lg">
-            <MudDataGrid @ref="articleTable" T="Article" Items="listArticle" Hideable="false" Groupable="false" Dense SortMode="SortMode.None">
+            <MudDataGrid @ref="userInfoTable" T="UserInfo" Items="listUserInfo" Hideable="false" Groupable="false" Dense SortMode="SortMode.None">
                 <ToolBarContent>
                     <MudSpacer />
                     <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Info" StartIcon="@Icons.Material.Filled.Add" OnClick="CreationFormOpen">Create an Article</MudButton>
                     <MudSpacer />
                 </ToolBarContent>
                 <Columns>
-                    <PropertyColumn Property="x => x.Id" Title="Id" />
-                    <PropertyColumn Property="x => x.Title" Title="Title" />
+                    <PropertyColumn Property="x => x.LastName" Title="LastName" />
+                    <PropertyColumn Property="x => x.FirstName" Title="FirstName" />
+                    <PropertyColumn Property="x => x.Email" Title="Email" />
                     <TemplateColumn Filterable="false">
                         <CellTemplate>
                             <MudStack Row>
-                                <MudPaper Elevation="3" Class="d-inline-flex">
-                                    <MudIconButton Class="pa-1" Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Filled.Edit" OnClick="() => DetailFormOpen(context.Item)" />
-                                    <MudIconButton Class="pa-1 ml-2" Size="Size.Small" Color="Color.Error" Icon="@Icons.Material.Filled.Delete" OnClick="() => DeleteFormOpen(context.Item)" />
-                                </MudPaper>
+                                <MudButton Class="pa-1" Size="Size.Small" Color="Color.Info" StartIcon="@Icons.Material.Filled.Article" OnClick="() => DetailFormOpen(context.Item)">Edit</MudButton>
+                                <MudButton Class="pa-1" Size="Size.Small" Color="Color.Warning" StartIcon="@Icons.Material.Filled.Edit" OnClick="() => EditFormOpen(context.Item)">Edit</MudButton>
+                                <MudButton Class="pa-1" Size="Size.Small" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete" OnClick="() => DeleteFormOpen(context.Item)">Delete</MudButton>
                             </MudStack>
                         </CellTemplate>
                     </TemplateColumn>
                 </Columns>
                 <PagerContent>
-                    <MudDataGridPager T="Article" />
+                    <MudDataGridPager T="UserInfo" />
                 </PagerContent>
             </MudDataGrid>
         </MudPaper>
@@ -37,14 +37,39 @@
     <MudItem xs="2" Class="mt-5 mb-3"> </MudItem>
 </MudGrid>
 
+<MudDialog Visible="visibleDetailForm" Options="dialogOptions" OnBackdropClick="DetailFormClose" Class="rounded-lg">
+    <TitleContent>
+        <MudText Typo="Typo.h6">@userInfo.LastName @userInfo.FirstName</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="creationForm" ReadOnly>
+            <MudTextField T="string" Class="rounded-lg" Label="LastName" @bind-Value="userInfo.LastName" Required RequiredError="Please insert a LastName" Disabled />
+            <MudTextField T="string" Class="rounded-lg" Label="FirstName" @bind-Value="userInfo.FirstName" Required RequiredError="Please insert a FirstName" Disabled />
+            <MudTextField T="string" Class="rounded-lg" Label="Email" @bind-Value="userInfo.Email" Required RequiredError="Please insert an Email" Disabled />
+            <MudTextField T="string" Class="rounded-lg" Label="Address" @bind-Value="userInfo.Address" Required RequiredError="Please insert an Address" Disabled />
+            <MudTextField T="string" Class="rounded-lg" Label="City" @bind-Value="userInfo.City" Required RequiredError="Please insert a City" Disabled />
+            <MudTextField T="string" Class="rounded-lg" Label="ZipCode" @bind-Value="userInfo.ZipCode" Required RequiredError="Please insert a ZipCode" Disabled />
+            <MudTextField T="string" Class="rounded-lg" Label="Country" @bind-Value="userInfo.Country" Required RequiredError="Please insert an Country" Disabled />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="DetailFormClose">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
 <MudDialog Visible="visibleCreationForm" Options="dialogOptions" OnBackdropClick="CreationFormClose" Class="rounded-lg">
     <TitleContent>
-        <MudText Typo="Typo.h6">Create an Article</MudText>
+        <MudText Typo="Typo.h6">Create a User</MudText>
     </TitleContent>
     <DialogContent>
         <MudForm @ref="creationForm">
-            <MudTextField T="string" Class="rounded-lg" Label="Title" @bind-Value="article.Title" Required RequiredError="Please insert a Title" Variant="Variant.Outlined" />
-            <MudTextField T="string" Class="rounded-lg" Label="Content" @bind-Value="article.Content" Required RequiredError="Please insert a Content" Variant="Variant.Outlined" Lines="3" AutoGrow Validation="@(new Func<string, IEnumerable<string>>(ContentLength))" />
+            <MudTextField T="string" Class="rounded-lg" Label="LastName" @bind-Value="userInfo.LastName" Required RequiredError="Please insert a LastName" Variant="Variant.Outlined" />
+            <MudTextField T="string" Class="rounded-lg" Label="FirstName" @bind-Value="userInfo.FirstName" Required RequiredError="Please insert a FirstName" Variant="Variant.Outlined" />
+            <MudTextField T="string" Class="rounded-lg" Label="Email" @bind-Value="userInfo.Email" Required RequiredError="Please insert an Email" Variant="Variant.Outlined" />
+            <MudTextField T="string" Class="rounded-lg" Label="Address" @bind-Value="userInfo.Address" Required RequiredError="Please insert an Address" Variant="Variant.Outlined" />
+            <MudTextField T="string" Class="rounded-lg" Label="City" @bind-Value="userInfo.City" Required RequiredError="Please insert a City" Variant="Variant.Outlined" />
+            <MudTextField T="string" Class="rounded-lg" Label="ZipCode" @bind-Value="userInfo.ZipCode" Required RequiredError="Please insert a ZipCode" Variant="Variant.Outlined" />
+            <MudTextField T="string" Class="rounded-lg" Label="Country" @bind-Value="userInfo.Country" Required RequiredError="Please insert an Country" Variant="Variant.Outlined" />
         </MudForm>
     </DialogContent>
     <DialogActions>
@@ -53,25 +78,30 @@
     </DialogActions>
 </MudDialog>
 
-<MudDialog Visible="visibleDetailForm" Options="dialogOptions" OnBackdropClick="CreationFormClose" Class="rounded-lg">
+<MudDialog Visible="visibleEditForm" Options="dialogOptions" OnBackdropClick="EditFormClose" Class="rounded-lg">
     <TitleContent>
-        <MudText Typo="Typo.h6">Edit Article : @article.Title</MudText>
+        <MudText Typo="Typo.h6">Edit User : @userInfo.LastName @userInfo.FirstName</MudText>
     </TitleContent>
     <DialogContent>
-        <MudForm @ref="detailForm">
-            <MudTextField T="string" Class="rounded-lg" Label="Title" @bind-Value="article.Title" Required RequiredError="Please insert a Title"  Variant="Variant.Outlined" />
-            <MudTextField T="string" Class="rounded-lg" Label="Content" @bind-Value="article.Content" Required RequiredError="Please insert a Content" Variant="Variant.Outlined" Lines="3" AutoGrow Validation="@(new Func<string, IEnumerable<string>>(ContentLength))" />
+        <MudForm @ref="editForm">
+            <MudTextField T="string" Class="rounded-lg" Label="LastName" @bind-Value="userInfo.LastName" Required RequiredError="Please insert a LastName" Variant="Variant.Outlined" />
+            <MudTextField T="string" Class="rounded-lg" Label="FirstName" @bind-Value="userInfo.FirstName" Required RequiredError="Please insert a FirstName" Variant="Variant.Outlined" />
+            <MudTextField T="string" Class="rounded-lg" Label="Email" @bind-Value="userInfo.Email" Required RequiredError="Please insert an Email" Variant="Variant.Outlined" />
+            <MudTextField T="string" Class="rounded-lg" Label="Address" @bind-Value="userInfo.Address" Required RequiredError="Please insert an Address" Variant="Variant.Outlined" />
+            <MudTextField T="string" Class="rounded-lg" Label="City" @bind-Value="userInfo.City" Required RequiredError="Please insert a City" Variant="Variant.Outlined" />
+            <MudTextField T="string" Class="rounded-lg" Label="ZipCode" @bind-Value="userInfo.ZipCode" Required RequiredError="Please insert a ZipCode" Variant="Variant.Outlined" />
+            <MudTextField T="string" Class="rounded-lg" Label="Country" @bind-Value="userInfo.Country" Required RequiredError="Please insert an Country" Variant="Variant.Outlined" />
         </MudForm>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="DetailFormClose">Cancel</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Info" StartIcon="@Icons.Material.Filled.Save" OnClick="DetailFormSubmit">Save changes</MudButton>
+        <MudButton OnClick="EditFormClose">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Info" StartIcon="@Icons.Material.Filled.Save" OnClick="EditFormSubmit">Save changes</MudButton>
     </DialogActions>
 </MudDialog>
 
 <MudMessageBox @ref="mbox" Title="Warning !" CancelText="Cancel" Class="rounded-lg">
     <MessageContent>
-        <MudText>You are going to <b>DELETE</b> a Article</MudText>
+        <MudText>You are going to <b>DELETE</b> a User</MudText>
     </MessageContent>
     <YesButton>
         <MudButton Class="ml-3" Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete" OnClick="DeleteFormSubmit">Delete</MudButton>
@@ -80,29 +110,39 @@
 
 @code{
     // Variable for DataGrid
-    private MudDataGrid<Article> articleTable = new();
-    private IEnumerable<Article> listArticle = new List<Article>();
+    private MudDataGrid<UserInfo> userInfoTable = new();
+    private IEnumerable<UserInfo> listUserInfo = new List<UserInfo>();
 
     // Variable for Form
     private DialogOptions dialogOptions = new DialogOptions() { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true };
-    private Article article = new();
-    private MudForm? creationForm;
-    private bool visibleCreationForm;
+    private UserInfo userInfo = new();
+    private static UserInfo userInfoOld = new();
     private MudForm? detailForm;
     private bool visibleDetailForm;
-    private bool readonlyDetailForm = true;
+    private MudForm? creationForm;
+    private bool visibleCreationForm;
+    private MudForm? editForm;
+    private bool visibleEditForm;
     private MudMessageBox? mbox { get; set; }
 
     // Initialisation
     protected override async Task OnInitializedAsync()
     {
-        listArticle = await articleAppService.GetAllAsync();
+        listUserInfo = await userInfoAppService.GetAllAsync();
     }
+
+    // Detail Form
+    private void DetailFormOpen(UserInfo userInfoDb)
+    {
+        userInfo = userInfoDb;
+        visibleDetailForm = true;
+    }
+    private void DetailFormClose() => visibleDetailForm = false;
 
     // Creation Form
     private void CreationFormOpen()
     {
-        article = new();
+        userInfo = new();
         visibleCreationForm = true;
     }
     private void CreationFormClose() => visibleCreationForm = false;
@@ -113,61 +153,51 @@
         {
             try
             {
-                await articleAppService.CreateAsync(article);
-                listArticle = listArticle.Append(article);
+                await userInfoAppService.CreateAsync(userInfo);
+                listUserInfo = listUserInfo.Append(userInfo);
             }
             catch (Exception e) { throw new("Error in Article creation : ", e); }
             visibleCreationForm = false;
         }
     }
 
-    // Detail Form
-    private void DetailFormOpen(Article articleDb)
+    // Edit Form
+    private void EditFormOpen(UserInfo userInfoDb)
     {
-        article = articleDb;
-        visibleDetailForm = true;
-        readonlyDetailForm = true;
+        userInfo = userInfoDb;
+        visibleEditForm = true;
     }
-    private void DetailFormClose() => visibleDetailForm = false;
-    private async Task DetailFormSubmit()
+    private async Task EditFormClose() => visibleEditForm = false;
+    private async Task EditFormSubmit()
     {
-        await detailForm!.Validate();
-        if (detailForm.IsValid)
+        await editForm!.Validate();
+        if (editForm.IsValid)
         {
             try
             {
-                await articleAppService.UpdateAsync(article);
-                listArticle = listArticle.Where(x => x.Id != article.Id);
-                listArticle = listArticle.Append(article);
+                await userInfoAppService.UpdateAsync(userInfo);
+                listUserInfo = listUserInfo.Where(x => x.Id != userInfo.Id);
+                listUserInfo = listUserInfo.Append(userInfo);
             }
             catch (Exception e) { throw new("Error in Article update : ", e); }
-            visibleDetailForm = false;
+            visibleEditForm = false;
         }
     }
 
     // Delete Form
-    private async Task DeleteFormOpen(Article articleDb)
+    private async Task DeleteFormOpen(UserInfo userInfoDb)
     {
-        article = articleDb;
+        userInfo = userInfoDb;
         bool? result = await mbox!.ShowAsync();
     }
     private async Task DeleteFormSubmit()
     {
         try
         {
-            await articleAppService.DeleteAsync(article);
-            listArticle = listArticle.Where(x => x.Id != article.Id);
+            await userInfoAppService.DeleteAsync(userInfo);
+            listUserInfo = listUserInfo.Where(x => x.Id != userInfo.Id);
         }
         catch (Exception e) { throw new("Error in Article delete : ", e); }
-        visibleDetailForm = false;
-    }
-
-    private IEnumerable<string> ContentLength(string content)
-    {
-        if(content.Length > 250)
-        {
-            yield return $"Content can't be loger than 250 characters, current length : {content.Length}";
-            yield break;
-        }
+        visibleEditForm = false;
     }
 }

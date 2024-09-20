@@ -6,8 +6,7 @@ using ProjetBloc3.Business.Applicatif.Security;
 using ProjetBloc3.Business.Metier;
 using ProjetBloc3.Business.Metier.Security;
 using ProjetBloc3.Components;
-using ProjetBloc3.Repository.BlocCube3;
-using ProjetBloc3.Security.Services;
+using ProjetBloc3.Repository.BlocCube;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -36,18 +35,12 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddMudServices();
 
 // Services métiers
-builder.Services.AddScoped<IArticleService, ArticleService>();
-builder.Services.AddScoped<IModuleService, ModuleService>();
-builder.Services.AddScoped<IRoleService, RoleService>();
-builder.Services.AddScoped<IUserRoleModuleAccessService, UserRoleModuleAccessService>();
-builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IUserInfoService, UserInfoService>();
+builder.Services.AddScoped<IUserAccountService, UserAccountService>();
 
 // Services applicatifs
-builder.Services.AddScoped<IArticleAppService, ArticleAppService>();
-builder.Services.AddScoped<IAuthenticationServiceApp, AuthenticationServiceApp>();
-builder.Services.AddScoped<IModuleServiceApp, ModuleServiceApp>();
-builder.Services.AddScoped<IRoleServiceApp, RoleServiceApp>();
-builder.Services.AddScoped<IUserServiceApp, UserServiceApp>();
+builder.Services.AddScoped<IUserInfoAppService, UserInfoAppService>();
+builder.Services.AddScoped<IUserAccountAppService, UserAccountAppService>();
 
 // Configurer Serilog pour enregistrer les logs dans un fichier
 Log.Logger = new LoggerConfiguration()
